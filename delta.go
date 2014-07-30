@@ -13,10 +13,11 @@ var (
 type fields map[string]interface{}
 
 type structInfo struct {
+	Fields fields
+
 	sInterface interface{}
 	sValue     reflect.Value
 	sType      reflect.Type
-	fields     fields
 }
 
 func getStructInfo(val interface{}) (*structInfo, error) {
@@ -28,13 +29,13 @@ func getStructInfo(val interface{}) (*structInfo, error) {
 		sInterface: val,
 		sValue:     reflect.ValueOf(val),
 		sType:      reflect.TypeOf(val),
-		fields:     make(fields),
+		Fields:     make(fields),
 	}
 
 	numFields := info.sValue.NumField()
 	for i := 0; i < numFields; i++ {
 		field := info.sType.Field(i)
-		info.fields[field.Name] = info.sValue.Field(i).Interface()
+		info.Fields[field.Name] = info.sValue.Field(i).Interface()
 	}
 
 	return info, nil
@@ -45,15 +46,41 @@ func isStruct(val interface{}) bool {
 }
 
 // Find the delta between 2 structs
-func Struct(s1, s2 interface{}) (map[string]interface{}, error) {
+func Struct(base, compare interface{}) (map[string]interface{}, error) {
 	var err error
 
-	s1info, err = getStructInfo(s1)
+	baseInfo, err := getStructInfo(base)
 	if err != nil {
 		return nil, err
 	}
-	s2info, err = getStructInfo(s2)
+	compareInfo, err := getStructInfo(compare)
 	if err != nil {
 		return nil, err
 	}
+
+	diffFields := make(fields)
+	for fieldName := range compareInfo.Fields {
+		comparefieldVal := compareInfo.Fields[fieldName]
+		basefieldVal, exists := baseInfo.Fields[fieldName]
+		if exists {
+			if !equal(comparefieldVal, basefieldVal) {
+				diffFields[fieldName] = comparefieldVal
+			}
+		} else {
+			diffFields[fieldName] = comparefieldVal
+		}
+	}
+
+	return diffFields, nil
+}
+
+// Returns true if both parameters have the same type and value
+// false otherwise
+func equal(v1, v2 interface{}) bool {
+	if reflect.TypeOf(v1).Kind() != reflect.TypeOf(v2).Kind() {
+		return false
+	} else if !reflect.DeepEqual(v1, v2) {
+		return false
+	}
+	return true
 }
