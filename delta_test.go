@@ -1,12 +1,21 @@
 package delta
 
 import (
+	"fmt"
 	"testing"
 )
 
 type structDeltaSimple struct {
 	Field1 string
 	Field2 string
+}
+
+type DeltaEmbeddedStruct struct {
+	Test []EmbeddedStruct
+}
+
+type EmbeddedStruct struct {
+	DeeperTest string
 }
 
 func TestStructSimpleDeltaEqual(t *testing.T) {
@@ -36,4 +45,15 @@ func TestStructDeltaNotEqual(t *testing.T) {
 	if diff["Field2"] != "value3" {
 		t.Errorf("Struct reported wrong diff for struct, should be 'value3', got: '%v'", diff["Field2"])
 	}
+}
+
+func TestEmbeddedStruct(t *testing.T) {
+	s1 := DeltaEmbeddedStruct{}
+	s2 := DeltaEmbeddedStruct{Test: []EmbeddedStruct{EmbeddedStruct{DeeperTest: "HELLO WORLD"}}}
+
+	diff, err := Struct(s1, s2)
+	if err != nil {
+		t.Errorf("Struct returned an error: %v", err)
+	}
+	fmt.Println(diff)
 }

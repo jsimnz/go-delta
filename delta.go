@@ -3,6 +3,8 @@ package delta
 import (
 	"errors"
 	"reflect"
+
+	"github.com/fatih/structure"
 )
 
 var (
@@ -61,17 +63,45 @@ func Struct(base, compare interface{}) (map[string]interface{}, error) {
 	diffFields := make(fields)
 	for fieldName := range compareInfo.Fields {
 		comparefieldVal := compareInfo.Fields[fieldName]
-		basefieldVal, exists := baseInfo.Fields[fieldName]
-		if exists {
-			if !equal(comparefieldVal, basefieldVal) {
-				diffFields[fieldName] = comparefieldVal
-			}
-		} else {
-			diffFields[fieldName] = comparefieldVal
+		basefieldVal, _ := baseInfo.Fields[fieldName]
+
+		if !equal(comparefieldVal, basefieldVal) {
+			diffFields[fieldName] = parse(reflect.ValueOf(comparefieldVal))
 		}
 	}
 
 	return diffFields, nil
+}
+
+func parse(val reflect.Value) interface{} {
+	valKind := val.Kind()
+	var rtnval interface{}
+	switch valKind {
+	case reflect.Struct:
+		// convert to map
+		rtnval = structure.Map(val.Interface())
+	case reflect.Slice, reflect.Array:
+		// create []interface{}
+		// iterate over field slice and add each item to the []interface{}
+		rtnval = parseSlice(val.Interface())
+
+	default:
+		rtnval = val.Interface()
+	}
+
+	return rtnval
+}
+
+func parseSlice(slice interface{}) []interface{} {
+	sliceVal := reflect.ValueOf(slice)
+	length := sliceVal.Len()
+	vals := make([]interface{}, 0)
+	for i := 0; i < length; i++ {
+		val := sliceVal.Index(i)
+		vals = append(vals, parse(val))
+	}
+
+	return vals
 }
 
 // Returns true if both parameters have the same type and value
