@@ -4,7 +4,7 @@ import (
 	"errors"
 	"reflect"
 
-	"github.com/fatih/structure"
+	"github.com/fatih/structs"
 )
 
 var (
@@ -79,7 +79,7 @@ func parse(val reflect.Value) interface{} {
 	switch valKind {
 	case reflect.Struct:
 		// convert to map
-		rtnval = structure.Map(val.Interface())
+		rtnval = structs.Map(val.Interface())
 	case reflect.Slice, reflect.Array:
 		// create []interface{}
 		// iterate over field slice and add each item to the []interface{}
